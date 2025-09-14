@@ -4,4 +4,5 @@
     <string name="success_login_sent">Código enviado com sucesso!</string>
     <string name="error_login">Erro ao tentar logar!</string>
     <string name="error_login_verification">Erro ao verificar o código SMS</string>
+    <string name="error_upload_image">Erro ao salvar imagem!</string>
 </resources>

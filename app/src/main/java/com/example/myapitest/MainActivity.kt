@@ -56,6 +56,12 @@ class MainActivity : AppCompatActivity() {
             binding.swipeRefreshLayout.isRefreshing = true
             fetchItems()
         }
+        binding.logoutButton.setOnClickListener {
+            onLogout()
+        }
+        binding.addCta.setOnClickListener {
+            navigateToNewItem()
+        }
     }
 
     private fun requestLocationPermission() {
@@ -96,7 +102,9 @@ class MainActivity : AppCompatActivity() {
         startActivity(intent)
         finish()
     }
-
+    private fun navigateToNewItem() {
+        startActivity(NewItem.newIntent(this))
+    }
 
     companion object {
 
