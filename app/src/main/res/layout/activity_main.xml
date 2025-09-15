@@ -48,7 +48,7 @@
                     android:layout_width="0dp"
                     android:layout_height="60dp"
                     android:layout_weight="1"
-                    android:text="Logout"
+                    android:text="Sair"
                     android:textColor="@android:color/white"
                     android:background="@color/logout_button_color"
                     android:layout_marginEnd="4dp"
