@@ -5,4 +5,8 @@
     <string name="error_login">Erro ao tentar logar!</string>
     <string name="error_login_verification">Erro ao verificar o código SMS</string>
     <string name="error_upload_image">Erro ao salvar imagem!</string>
+    <string name="error_validate_form">Por favor, preencha o campo: %1$s</string>
+    <string name="error_validate_form_location">Por favor, selecione a localização no mapa.</string>
+    <string name="error_create">Erro ao cadastrar carro!</string>
+    <string name="success_create">Carro %1$s adicionado com sucesso!</string>
 </resources>

@@ -1,5 +1,6 @@
 package com.example.myapitest
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
@@ -10,6 +11,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
+import android.view.View
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
@@ -26,12 +28,35 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.UUID
 import androidx.core.content.ContextCompat.checkSelfPermission
-class NewItem : AppCompatActivity() {
+import com.example.myapitest.model.Item
+import com.example.myapitest.model.ItemPlace
+import com.example.myapitest.service.RetrofitClient
+import com.example.myapitest.service.Result
+import com.example.myapitest.service.safeApiCall
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.OnMapReadyCallback
+import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.Marker
+import com.google.android.gms.maps.model.MarkerOptions
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.security.SecureRandom
+
+class NewItem : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var binding: ActivityNewItemBinding
 
     private lateinit var imageUri: Uri
     private var imageFile: File? = null
+
+    private lateinit var mMap: GoogleMap
+    private var selectedMarker: Marker? = null
+    private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
 
     private val cameraLauncher: ActivityResultLauncher<Intent> = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -48,6 +73,7 @@ class NewItem : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(binding.root)
         setupView()
+        setupGoogleMap()
 
     }
 
@@ -67,6 +93,11 @@ class NewItem : AppCompatActivity() {
         binding.takePictureCta.setOnClickListener {
             onTakePicture()
         }
+    }
+
+    private fun setupGoogleMap() {
+        val mapFragment = supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
+        mapFragment.getMapAsync(this)
     }
 
     private fun onTakePicture() {
@@ -129,6 +160,7 @@ class NewItem : AppCompatActivity() {
         imagesRef.putBytes(data)
             .addOnFailureListener {
                 Toast.makeText(this, R.string.error_upload_image, Toast.LENGTH_SHORT).show()
+                onLoadingImage(false)
             }
             .addOnSuccessListener {
                 imagesRef.downloadUrl
@@ -148,56 +180,140 @@ class NewItem : AppCompatActivity() {
     }
 
     private fun onSave() {
-//        if (!validateForm()) return
-//        saveData()
+        if (!validateForm()) return
+        saveData()
     }
 
-//    private fun saveData() {
-//        val name = binding.name.text.toString()
-//        val year = binding.year.text.toString()
-//        val licese = binding.license.text.toString().toInt()
-//        val imageUrl = binding.imageUrl.text.toString()
-//        val location = selectedMarker?.position?.let { position ->
-//            ItemLocation(
-//                position.latitude,
-//                position.longitude,
-//                name
-//            )
-//        } ?: throw IllegalArgumentException("Usuário deveria ter a localização nesse ponto.")
-//
-//        CoroutineScope(Dispatchers.IO).launch {
-//            val itemValue = ItemValue(
-//                SecureRandom().nextInt().toString(),
-//                name,
-//                surname,
-//                profession,
-//                imageUrl,
-//                age,
-//                location
-//            )
-//            val result = safeApiCall { RetrofitClient.apiService.addItem(itemValue) }
-//            withContext(Dispatchers.Main) {
-//                when (result) {
-//                    is Result.Error -> {
-//                        Toast.makeText(
-//                            this@NewItemActivity,
-//                            R.string.error_create,
-//                            Toast.LENGTH_SHORT
-//                        ).show()
-//                    }
-//
-//                    is Result.Success -> {
-//                        Toast.makeText(
-//                            this@NewItemActivity,
-//                            getString(R.string.success_create, name),
-//                            Toast.LENGTH_SHORT
-//                        ).show()
-//                        finish()
-//                    }
-//                }
-//            }
-//        }
-//    }
+    private fun validateForm(): Boolean {
+        if (binding.name.text.toString().isBlank()) {
+            Toast.makeText(
+                this,
+                getString(R.string.error_validate_form, "Name"),
+                Toast.LENGTH_SHORT
+            ).show()
+            return false
+        }
+        if (binding.year.text.toString().isBlank()) {
+            Toast.makeText(
+                this,
+                getString(R.string.error_validate_form, "Ano do carro"),
+                Toast.LENGTH_SHORT
+            ).show()
+            return false
+        }
+        if (binding.license.text.toString().isBlank()) {
+            Toast.makeText(
+                this,
+                getString(R.string.error_validate_form, "Placa"),
+                Toast.LENGTH_SHORT
+            ).show()
+            return false
+        }
+
+        if (binding.imageUrl.text.toString().isBlank()) {
+            Toast.makeText(
+                this,
+                getString(R.string.error_validate_form, "Imagem"),
+                Toast.LENGTH_SHORT
+            ).show()
+            return false
+        }
+        if (selectedMarker == null) {
+            Toast.makeText(
+                this,
+                getString(R.string.error_validate_form_location),
+                Toast.LENGTH_SHORT
+            ).show()
+            return false
+        }
+        return true
+    }
+
+    override fun onMapReady(googleMap: GoogleMap) {
+        mMap = googleMap
+        binding.mapContent.visibility = View.VISIBLE
+        mMap.setOnMapClickListener { latLng ->
+            selectedMarker?.remove() // Limpa o Marker atual, caso exista
+
+            // Armazena o local do Novo Marker criado
+            selectedMarker = mMap.addMarker(
+                MarkerOptions()
+                    .position(latLng)
+                    .draggable(true)
+                    .title("Lat: ${latLng.latitude} Long: ${latLng.longitude}")
+            )
+        }
+        getDeviceLocation()
+    }
+
+    private fun getDeviceLocation() {
+        if (
+            checkSelfPermission(
+                this,
+                android.Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PERMISSION_GRANTED
+        ) {
+            // Já tenho permissão de localização do usuário
+            loadCurrentLocation()
+        } else {
+            // NÃO tenho permissão de localização do usuário
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun loadCurrentLocation() {
+        mMap.isMyLocationEnabled = true
+        fusedLocationProviderClient.lastLocation.addOnSuccessListener { location ->
+            val currentLocationLatLng = LatLng(location.latitude, location.longitude)
+            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLocationLatLng, 15f))
+        }
+    }
+
+    private fun saveData() {
+        val name = binding.name.text.toString()
+        val year = binding.year.text.toString()
+        val license = binding.license.text.toString()
+        val imageUrl = binding.imageUrl.text.toString()
+        val location = selectedMarker?.position?.let { position ->
+            ItemPlace(
+                position.latitude,
+                position.longitude,
+
+            )
+        } ?: throw IllegalArgumentException("Usuário deveria ter a localização nesse ponto.")
+
+        CoroutineScope(Dispatchers.IO).launch {
+            val itemValue = Item(
+                SecureRandom().nextInt().toString(),
+                name,
+                imageUrl,
+                year,
+                license,
+                location
+            )
+            val result = safeApiCall { RetrofitClient.apiService.addItem(itemValue) }
+            withContext(Dispatchers.Main) {
+                when (result) {
+                    is Result.Error -> {
+                        Toast.makeText(
+                            this@NewItem,
+                            R.string.error_create,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+
+                    is Result.Success -> {
+                        Toast.makeText(
+                            this@NewItem,
+                            getString(R.string.success_create, name),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        finish()
+                    }
+                }
+            }
+        }
+    }
 
 
     companion object {

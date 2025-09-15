@@ -11,6 +11,6 @@ data class Item(
 
 
 data class ItemPlace(
-    val latitude: Double,
-    val longitude: Double,
+    val lat: Double,
+    val long: Double,
 )
