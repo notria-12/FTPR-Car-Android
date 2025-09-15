@@ -9,6 +9,10 @@ data class Item(
     val place: ItemPlace
 )
 
+data class ItemResponse(
+    val id: String,
+    val value: Item
+)
 
 data class ItemPlace(
     val lat: Double,

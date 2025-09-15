@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">MyApiTest - Airton Sousa</string>
     <string name="item_year">Ano</string>
+
     <string name="success_login_sent">Código enviado com sucesso!</string>
     <string name="error_login">Erro ao tentar logar!</string>
     <string name="error_login_verification">Erro ao verificar o código SMS</string>
@@ -9,4 +10,8 @@
     <string name="error_validate_form_location">Por favor, selecione a localização no mapa.</string>
     <string name="error_create">Erro ao cadastrar carro!</string>
     <string name="success_create">Carro %1$s adicionado com sucesso!</string>
+    <string name="error_delete">Erro ao deletar!</string>
+    <string name="success_delete">Carro deletado com sucesso!</string>
+    <string name="error_update">Erro ao atualizar carro!</string>
+    <string name="success_update">Carro atualizado com sucesso!</string>
 </resources>

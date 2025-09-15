@@ -77,11 +77,11 @@ class MainActivity : AppCompatActivity() {
                 when (result) {
                     is Result.Success -> {
                         val adapter = ItemAdapter(result.data) { item ->
-                            Log.d("Hello World", "Clicou no item ${item.name}")
-//                            startActivity(ItemDetailActivity.newIntent(
-//                                context = this@MainActivity,
-//                                itemId = item.id
-//                            ))
+
+                            startActivity(ItemDetailActivity.newIntent(
+                                context = this@MainActivity,
+                                itemId = item.id
+                            ))
                         }
                         binding.recyclerView.adapter = adapter
                     }
